@@ -182,8 +182,13 @@ mainMenu() {
             ${modes[0]})
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
-                    profile "Extension Cold" "0" "75" "125" "-300" "2500"
-                    profile "Extension Cold" "1" "75" "125" "-300" "2500"
+                    profile "Extension Cold" "0" "70" "125" "-300" "2500"
+                    profile "Extension Cold" "1" "70" "125" "-300" "2500"
+                elif [ $HOSTNAME == "precision" ];then
+                    profile "Extension Cold" "0" "70" "125" "-300" "2400"
+                    profile "Extension Cold" "1" "70" "125" "-300" "2400"
+                    profile "Extension Cold" "2" "70" "125" "-300" "2400"
+                    profile "Extension Cold" "3" "70" "125" "-300" "2400"
                 else
                     # ~96 Mh
                     profile "Extension Cold" "0" "75" "230" "-400" "2000"
@@ -193,19 +198,29 @@ mainMenu() {
             ${modes[1]})
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
-                    profile "Extension Warm" "0" "85" "125" "-400" "2500"
-                    profile "Extension Warm" "1" "85" "125" "-400" "2500"
+                    profile "Extension Warm" "0" "80" "125" "-300" "2500"
+                    profile "Extension Warm" "1" "80" "125" "-300" "2500"
+                elif [ $HOSTNAME == "precision" ];then
+                    profile "Extension Cold" "0" "80" "125" "-300" "2400"
+                    profile "Extension Cold" "1" "80" "125" "-300" "2400"
+                    profile "Extension Cold" "2" "80" "125" "-300" "2400"
+                    profile "Extension Cold" "3" "80" "125" "-300" "2400"
                 else
                     # ~96 Mh
                     profile "Extension Warm" "0" "85" "230" "-400" "2000"
                 fi
                 break
-                ;;
+            ;;
             ${modes[2]})
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
-                    profile "Extension Warm" "0" "90" "125" "-400" "2500"
-                    profile "Extension Warm" "1" "90" "125" "-400" "2500"
+                    profile "Extension Warm" "0" "85" "125" "-300" "2500"
+                    profile "Extension Warm" "1" "85" "125" "-300" "2500"
+                elif [ $HOSTNAME == "precision" ];then
+                    profile "Extension Cold" "0" "90" "125" "-300" "2400"
+                    profile "Extension Cold" "1" "90" "125" "-300" "2400"
+                    profile "Extension Cold" "2" "90" "125" "-300" "2400"
+                    profile "Extension Cold" "3" "90" "125" "-300" "2400"
                 else
                     profile "Extension Hot" "0" "90" "230" "-400" "2000"
                 fi
