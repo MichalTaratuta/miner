@@ -37,7 +37,7 @@ powerCap() {
 # Emergency cleanup
 cleanup() {
         # Get number of GPUs
-        numGPUs=$(nvidia-smi --query-gpu=count --format=csv,noheader -id=0)
+        numGPUs=$(nvidia-smi --query-gpu=count --format=csv,noheader | sort -u)
 
         echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}Executing Trap${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
 
@@ -77,8 +77,25 @@ setFanSpeed() {
     gpuId=$2
     getFanSpeed $gpuId
 
+    if [ $gpuId == 0 ]; then
+        fanIdOne=0
+        fanIdTwo=1
+    elif [ $gpuId == 1 ]; then
+        fanIdOne=2
+        fanIdTwo=3
+    elif [ $gpuId == 2 ]; then
+        fanIdOne=4
+        fanIdTwo=5
+    elif [ $gpuId == 3 ]; then
+        fanIdOne=6
+        fanIdTwo=7
+    else
+        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}Unknown GPU id $gpuId, Executing Trap${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+        cleanup
+    fi
+
     if [ $fanSpeed -ne $1 ]; then
-        eval "nvidia-settings --assign [gpu:$gpuId]/GPUFanControlState=1 --assign [fan:0]/GPUTargetFanSpeed=$1 --assign [fan:1]/GPUTargetFanSpeed=$1" > /dev/null
+        eval "nvidia-settings --assign [gpu:$gpuId]/GPUFanControlState=1 --assign [fan:$fanIdOne]/GPUTargetFanSpeed=$1 --assign [fan:$fanIdTwo]/GPUTargetFanSpeed=$1" > /dev/null
         echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Current Fan Speed: ${GREEN}$fanSpeed%${NC}, Setting Fan Speed to ${BYELLOW}$1%${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
     else
         echo -e "$(date +'%d-%m-%Y %H:%M:%S') GPU:$gpuId, Fan Speed already at: ${GREEN}$fanSpeed%${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
@@ -110,7 +127,7 @@ thermThrottleCheck() {
 
 tempControl() {
     # Get number of GPUs
-    numGPUs=$(nvidia-smi --query-gpu=count --format=csv,noheader -id=0)
+    numGPUs=$(nvidia-smi --query-gpu=count --format=csv,noheader | sort -u)
 
     # Loop through each GPU
     for gpuId in $(seq 0 $((numGPUs-1))); do
@@ -144,10 +161,15 @@ tempControl() {
 
         # Set GPU fan speed
         if [ $gpuTemp -ge 60 ] && [ $fanSpeed -lt 90 ]; then
-                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU Temp >= 60 C, Executing Auto Fans${NC}"  2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-                fanAuto
+                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId Temp >= 60 C, Executing Auto Fans${NC}"  2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                # Looks like 3060 nd 3070 have high temp tresholds i.e 60C for the fans to kick in
+                if [ $HOSTNAME == "glassy" ];then
+                    fanAuto
+                else
+                    setFanSpeed "90" $gpuId
+                fi
         elif [ $gpuTemp -ge 52 ] && [ $fanSpeed -lt 90 ]; then
-                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU Temp >= 52 C, Setting Fans to 90%${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId Temp >= 52 C, Setting Fans to 90%${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
                 setFanSpeed "90" $gpuId
         else
             setFanSpeed ${defaultFanSpeed[$gpuId]} $gpuId
