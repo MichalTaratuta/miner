@@ -103,9 +103,18 @@ setFanSpeed() {
 }
 
 gpuClockOffset() {
+    gpuOffset=$1
     gpuId=$2
-    echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU clock offset to ${BYELLOW}$1MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-    eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffset[4]=$1" > /dev/null
+
+    # For some reason Micor is reporting: "GPU 0 gave incorrect result. Lower overclocking values if it happens frequently"
+    if [ $HOSTNAME == "micro" ] && [ $gpuId == 0 ];then
+        gpuOffset=$(($1-100))
+        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU clock offset to ${BYELLOW}${gpuOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+        eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffset[4]=$gpuOffset" > /dev/null
+    else
+        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU clock offset to ${BYELLOW}${gpuOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+        eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffset[4]=$gpuOffset" > /dev/null
+    fi
 }
 
 memRateOffset() {
@@ -113,8 +122,9 @@ memRateOffset() {
     gpuId=$2
 
     # For some reason Micor is reporting: "GPU 0 gave incorrect result. Lower overclocking values if it happens frequently"
+    # Dropping memory overcloc to 2200 has improved sligtly occurence
     if [ $HOSTNAME == "micro" ] && [ $gpuId == 0 ];then
-        memOffset=$(($1-100))
+        memOffset=$(($1-200))
         echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU memory offset to ${BYELLOW}${memOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
         eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffset[4]=$memOffset" > /dev/null
     else
