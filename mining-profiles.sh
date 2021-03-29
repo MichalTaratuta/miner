@@ -22,15 +22,15 @@ fanAuto() {
 
 declare -i powerLimit
 powerCap() {
+    pCap=$1
     gpuId=$2
     powerLimit=$(nvidia-smi --query-gpu=power.limit --format=csv,noheader,nounits --id=$gpuId | cut -d'.' -f1)
 
     if [ $powerLimit != $1 ]; then
-        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting power cap to ${BYELLOW}$1W${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-        eval "sudo nvidia-smi --id=$gpuId --power-limit=$1" > /dev/null
-
+        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting power cap to ${BYELLOW}${pCap}W${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+        eval "sudo nvidia-smi --id=$gpuId --power-limit=$pCap" > /dev/null
     else
-        echo -e "$(date +'%d-%m-%Y %H:%M:%S') GPU:$gpuId, Power cap already at ${GREEN}$1 W${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+        echo -e "$(date +'%d-%m-%Y %H:%M:%S') GPU:$gpuId, Power cap already at ${GREEN}${pCap}W${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
     fi
 }
 
@@ -51,11 +51,19 @@ cleanup() {
             echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId, Setting automatic P-State control${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
             eval "nvidia-settings --assign [gpu:$gpuId]/GPUPowerMizerMode=0" > /dev/null
 
-            echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId, Setting GPU clock offset to 0MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-            eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffset[4]=0" > /dev/null
+            if [ $HOSTNAME == "black8gpu" ];then
+                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId, Setting GPU clock offset to 0MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffsetAllPerformanceLevels=0" > /dev/null
 
-            echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId, Setting GPU memory offset to 0MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-            eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffset[4]=0" > /dev/null
+                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId, Setting GPU memory offset to 0MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffsetAllPerformanceLevels=0" > /dev/null
+            else
+                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId, Setting GPU clock offset to 0MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffset[4]=0" > /dev/null
+
+                echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}GPU:$gpuId, Setting GPU memory offset to 0MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffset[4]=0" > /dev/null
+            fi
         done
         echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}Exit${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
         exit
@@ -89,6 +97,18 @@ setFanSpeed() {
     elif [ $gpuId == 3 ]; then
         fanIdOne=6
         fanIdTwo=7
+    elif [ $gpuId == 4 ]; then
+        fanIdOne=8
+        fanIdTwo=9
+    elif [ $gpuId == 5 ]; then
+        fanIdOne=10
+        fanIdTwo=11
+    elif [ $gpuId == 6 ]; then
+        fanIdOne=12
+        fanIdTwo=13
+    elif [ $gpuId == 7 ]; then
+        fanIdOne=14
+        fanIdTwo=15
     else
         echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${RED}Unknown GPU id $gpuId, Executing Trap${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
         cleanup
@@ -106,29 +126,23 @@ gpuClockOffset() {
     gpuOffset=$1
     gpuId=$2
 
-    # For some reason Micor is reporting: "GPU 0 gave incorrect result. Lower overclocking values if it happens frequently"
-    if [ $HOSTNAME == "micro" ] && [ $gpuId == 0 ];then
-        gpuOffset=$(($1-100))
-        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU clock offset to ${BYELLOW}${gpuOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-        eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffset[4]=$gpuOffset" > /dev/null
+    echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU clock offset to ${BYELLOW}${gpuOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+    if [ $HOSTNAME == "black8gpu" ];then
+        eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffsetAllPerformanceLevels=$gpuOffset" > /dev/null
     else
-        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU clock offset to ${BYELLOW}${gpuOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
         eval "nvidia-settings --assign [gpu:$gpuId]/GPUGraphicsClockOffset[4]=$gpuOffset" > /dev/null
     fi
+
 }
 
 memRateOffset() {
     memOffset=$1
     gpuId=$2
 
-    # For some reason Micor is reporting: "GPU 0 gave incorrect result. Lower overclocking values if it happens frequently"
-    # Dropping memory overcloc to 2200 has improved sligtly occurence
-    if [ $HOSTNAME == "micro" ] && [ $gpuId == 0 ];then
-        memOffset=$(($1-200))
-        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU memory offset to ${BYELLOW}${memOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-        eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffset[4]=$memOffset" > /dev/null
+    echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU memory offset to ${BYELLOW}${memOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+    if [ $HOSTNAME == "black8gpu" ];then
+        eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffsetAllPerformanceLevels=$memOffset" > /dev/null
     else
-        echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${BYELLOW}GPU:$gpuId${NC}, Setting GPU memory offset to ${BYELLOW}${memOffset}MHz${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
         eval "nvidia-settings --assign [gpu:$gpuId]/GPUMemoryTransferRateOffset[4]=$memOffset" > /dev/null
     fi
 }
@@ -217,6 +231,7 @@ mainMenu() {
         "Extension Cold"
         "Extension Warm"
         "Extension Hot"
+        "Extension Experimental"
         "Exit"
     )
     select mode in "${modes[@]}"; do
@@ -224,13 +239,21 @@ mainMenu() {
             ${modes[0]})
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
-                    profile "Extension Cold" "0" "70" "125" "-300" "2500"
+                    profile "Extension Cold" "0" "70" "130" "-300" "2200"
                     profile "Extension Cold" "1" "70" "125" "-300" "2500"
                 elif [ $HOSTNAME == "precision" ];then
                     profile "Extension Cold" "0" "70" "125" "-300" "2400"
                     profile "Extension Cold" "1" "70" "125" "-300" "2400"
                     profile "Extension Cold" "2" "70" "125" "-300" "2400"
                     profile "Extension Cold" "3" "70" "125" "-300" "2400"
+                elif [ $HOSTNAME == "black8gpu" ];then
+                    profile "Extension Cold" "0" "70" "125" "-300" "2400" #3060
+                    profile "Extension Cold" "1" "70" "125" "-300" "2500" #3070
+                    profile "Extension Cold" "2" "70" "130" "-300" "2200" #3070 in PCI 0 ID swapped to 2 in xorg.conf
+                    profile "Extension Cold" "3" "70" "125" "-300" "2400" #3060
+                    profile "Extension Cold" "4" "70" "125" "-300" "2400" #3060
+                    profile "Extension Cold" "5" "70" "125" "-300" "2400" #3060
+                    profile "Extension Cold" "6" "70" "125" "-300" "2400" #3060
                 else
                     # ~96 Mh
                     profile "Extension Cold" "0" "75" "230" "-400" "2000"
@@ -240,13 +263,21 @@ mainMenu() {
             ${modes[1]})
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
-                    profile "Extension Warm" "0" "80" "125" "-300" "2500"
+                    profile "Extension Warm" "0" "80" "130" "-300" "2200"
                     profile "Extension Warm" "1" "80" "125" "-300" "2500"
                 elif [ $HOSTNAME == "precision" ];then
-                    profile "Extension Cold" "0" "80" "125" "-300" "2400"
-                    profile "Extension Cold" "1" "80" "125" "-300" "2400"
-                    profile "Extension Cold" "2" "80" "125" "-300" "2400"
-                    profile "Extension Cold" "3" "80" "125" "-300" "2400"
+                    profile "Extension Warm" "0" "80" "125" "-300" "2400"
+                    profile "Extension Warm" "1" "80" "125" "-300" "2400"
+                    profile "Extension Warm" "2" "80" "125" "-300" "2400"
+                    profile "Extension Warm" "3" "80" "125" "-300" "2400"
+                elif [ $HOSTNAME == "black8gpu" ];then
+                    profile "Extension Warm" "0" "80" "125" "-300" "2400" #3060
+                    profile "Extension Warm" "1" "80" "125" "-300" "2500" #3070
+                    profile "Extension Warm" "2" "80" "130" "-300" "2200" #3070 in PCI 0 ID swapped to 2 in xorg.conf
+                    profile "Extension Warm" "3" "80" "125" "-300" "2400" #3060
+                    profile "Extension Warm" "4" "80" "125" "-300" "2400" #3060
+                    profile "Extension Warm" "5" "80" "125" "-300" "2400" #3060
+                    profile "Extension Warm" "6" "80" "125" "-300" "2400" #3060
                 else
                     # ~96 Mh
                     profile "Extension Warm" "0" "85" "230" "-400" "2000"
@@ -256,19 +287,39 @@ mainMenu() {
             ${modes[2]})
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
-                    profile "Extension Warm" "0" "85" "125" "-300" "2500"
-                    profile "Extension Warm" "1" "85" "125" "-300" "2500"
+                    profile "Extension Hot" "0" "85" "130" "-300" "2200"
+                    profile "Extension Hot" "1" "85" "125" "-300" "2500"
                 elif [ $HOSTNAME == "precision" ];then
-                    profile "Extension Cold" "0" "90" "125" "-300" "2400"
-                    profile "Extension Cold" "1" "90" "125" "-300" "2400"
-                    profile "Extension Cold" "2" "90" "125" "-300" "2400"
-                    profile "Extension Cold" "3" "90" "125" "-300" "2400"
+                    profile "Extension Hot" "0" "90" "125" "-300" "2400"
+                    profile "Extension Hot" "1" "90" "125" "-300" "2400"
+                    profile "Extension Hot" "2" "90" "125" "-300" "2400"
+                    profile "Extension Hot" "3" "90" "125" "-300" "2400"
+                elif [ $HOSTNAME == "black8gpu" ];then
+                    profile "Extension Hot" "0" "80" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "1" "80" "125" "-300" "2500" #3070
+                    profile "Extension Hot" "2" "80" "130" "-300" "2200" #3070 in PCI 0 ID swapped to 2 in xorg.conf
+                    profile "Extension Hot" "3" "80" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "4" "80" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "5" "80" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "6" "80" "125" "-300" "2400" #3060
                 else
                     profile "Extension Hot" "0" "90" "230" "-400" "2000"
                 fi
                 break
             ;;
             ${modes[3]})
+                if [ $HOSTNAME == "black8gpu" ];then
+                    profile "Extension Hot" "0" "40" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "1" "40" "125" "-300" "2500" #3070
+                    profile "Extension Hot" "2" "40" "130" "-300" "2200" #3070 in PCI 0 ID swapped to 2 in xorg.conf
+                    profile "Extension Hot" "3" "40" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "4" "40" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "5" "40" "125" "-300" "2400" #3060
+                    profile "Extension Hot" "6" "40" "125" "-300" "2400" #3060
+                fi
+                break
+            ;;
+            ${modes[4]})
                 exit
             ;;
             *)
