@@ -226,17 +226,30 @@ profile() {
 }
 
 #Menu
-mainMenu() {
-    modes=(
-        "Extension Cold"
-        "Extension Warm"
-        "Extension Hot"
-        "Extension Experimental"
-        "Exit"
-    )
-    select mode in "${modes[@]}"; do
-        case $mode in
-            ${modes[0]})
+if [ $# -eq 0 ]; then
+    echo -e "${RED}Invalid Option${NC}" 2>&1
+    echo "Valid Options:"
+    echo "-ec, --extension_cold           for Extension Cold"
+    echo "-ew, --extension_warm           for Extension Warm"
+    echo "-eh, --extension_hot            for Extension Hot"
+    echo "-ee, --extension_experimental   for Extension Experimental"
+    echo "-om, --office_mode              for Office Mode"
+    exit 1
+else
+    while test $# -gt 0; do
+        case "$1" in
+            -h|--help)
+                echo "$package [options]"
+                echo " "
+                echo "options:"
+                echo "-ec, --extension_cold           for Extension Cold"
+                echo "-ew, --extension_warm           for Extension Warm"
+                echo "-eh, --extension_hot            for Extension Hot"
+                echo "-ee, --extension_experimental   for Extension Experimental"
+                echo "-om, --office_mode              for Office Mode"
+                exit 0
+                ;;
+            -ec|--extension_cold)
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
                     profile "Extension Cold" "0" "70" "130" "-300" "2200"
@@ -260,7 +273,7 @@ mainMenu() {
                 fi
                 break
             ;;
-            ${modes[1]})
+            -ew|--extension_warm)
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
                     profile "Extension Warm" "0" "80" "130" "-300" "2200"
@@ -284,7 +297,7 @@ mainMenu() {
                 fi
                 break
             ;;
-            ${modes[2]})
+            -eh|--extension_hot)
                 if [ $HOSTNAME == "micro" ];then
                     # ~122 Mh
                     profile "Extension Hot" "0" "85" "130" "-300" "2200"
@@ -307,7 +320,7 @@ mainMenu() {
                 fi
                 break
             ;;
-            ${modes[3]})
+            -ee|--extension_experimental)
                 if [ $HOSTNAME == "black8gpu" ];then
                     profile "Extension Hot" "0" "40" "125" "-300" "2400" #3060
                     profile "Extension Hot" "1" "40" "125" "-300" "2500" #3070
@@ -316,20 +329,36 @@ mainMenu() {
                     profile "Extension Hot" "4" "40" "125" "-300" "2400" #3060
                     profile "Extension Hot" "5" "40" "125" "-300" "2400" #3060
                     profile "Extension Hot" "6" "40" "125" "-300" "2400" #3060
+                else
+                    echo -e "${RED}Experimental mode for black8gpu node ONLY${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                    exit 1
                 fi
                 break
             ;;
-            ${modes[4]})
-                exit
+            -om|--office_mode)
+                if [ $HOSTNAME == "glass" ];then
+                    profile "Office Mode" "0" "70" "215" "-400" "750"
+                else
+                    echo -e "${RED}Experimental mode for glass node ONLY${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
+                    exit 1
+                fi
+                break
             ;;
             *)
-                echo -e "${RED}Invalid Option${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
-                exit
+                echo -e "${RED}Invalid Option${NC}" 2>&1
+                echo "Valid Options:"
+                echo "-ec, --extension_cold           for Extension Cold"
+                echo "-ew, --extension_warm           for Extension Warm"
+                echo "-eh, --extension_hot            for Extension Hot"
+                echo "-ee, --extension_experimental   for Extension Experimental"
+                echo "-om, --office_mode              for Office Mode"
+                exit 1
+                break
             ;;
         esac
     done
-}
-mainMenu
+fi
+
 
 echo -e "$(date +'%d-%m-%Y %H:%M:%S') ${GREEN}Running Temp Control${NC}" 2>&1 | tee -a "/home/${USERNAME}/mining-profiles-$(date +%d%m%Y).log"
 while :
